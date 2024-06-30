@@ -53,12 +53,12 @@ def generate_api():
             content = req_body.get("contents")
             model = genai.GenerativeModel(model_name=req_body.get("model"))
             execute_prompt = f'''
-anda adalah seorang data analyst expert dan saya adalah seorang salas manajer, saya sedang berhadapan dengan client saya.
+anda adalah seorang data analyst expert dan saya adalah seorang sales manajer.
 
 Berdasarkan data berikut 
 {data}
 
-dan client saya meminta hal berikut
+dan saya meminta hal berikut
 {content}
 
 berikan saya insight yang jelas dan singkat serta akurat. tidak usah berbasa basi
