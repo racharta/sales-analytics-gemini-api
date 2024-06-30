@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analyzing sales with Gemini API</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <main>
+    <h1>Analyzing sales with Gemini API</h1>
+    <a href="/manage-data" id="manage-data-link">Manage data</a>
+    <div id="chatbox">
+      <form method="POST" id="chat-form">
+        <input type="text" id="user-input" name="content" placeholder="Type your message...">
+        <div class="button-container">
+          <button id="send-button" type="submit">Send</button>
+          <button id="history-button">History</button> 
+        </div>
+      </form>
+      <div id="output"></div>
+    </div>
+    <div id="modal" class="hidden">
+        <div id="modal-content">
+            <h2>Chat History</h2>
+            <ul id="history-list"></ul>
+            <button id="close-modal">Close</button>
+        </div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/markdown-it@8.4.2/dist/markdown-it.min.js"></script>
+  <script src="https://unpkg.com/base64-js@1.3.0/base64js.min.js"></script>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
