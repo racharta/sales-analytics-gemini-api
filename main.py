@@ -8,20 +8,26 @@ import logging
 from oauth2client.service_account import ServiceAccountCredentials
 from flask import Flask, jsonify, request, send_file, send_from_directory
 
+from dotenv import load_dotenv
+
+load_dotenv()
 # 🔥🔥 FILL THIS OUT FIRST! 🔥🔥
 # Get your Gemini API key by:
 # - Selecting "Add Gemini API" in the "Project IDX" panel in the sidebar
 # - Or by visiting https://g.co/ai/idxGetGeminiKey
-API_KEY = 'AIzaSyBU-kvhibDf-Cy_vncrq-PcTS5VyXY8Vp0'
+API_KEY = os.getenv('GEMINI_API_KEY')
 # GEMINI_MODEL='gemini-1.5-flash'
 
 genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 
-scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope) 
-client = gspread.authorize(creds)
+def open_worksheet():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope) 
+    client = gspread.authorize(creds)
+    sheet = client.open_by_url('https://docs.google.com/spreadsheets/d/1vk7kuDZbI_I9jejQJSZpqNblH07r2Qb1IJLLyo69774/')
+    return sheet.worksheet('Retail Sales Dataset_exported.csv')
 
 @app.route("/")
 def index():
@@ -41,14 +47,8 @@ def generate_api():
                 main.py
                 '''.replace('\n', '') })
         try:
-            # setup google sheet
-            scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-            creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope) 
-            client = gspread.authorize(creds)
-            sheet = client.open_by_url('https://docs.google.com/spreadsheets/d/1jplp8qtv4uFD4YQitLf7dn-NUuYdMIDvIpJPq8Qb7-A/')
-            worksheet = sheet.worksheet('Retail Sales Dataset_exported.csv')
+            worksheet = open_worksheet()
             data = worksheet.get_all_values()
-
             req_body = request.get_json()
             content = req_body.get("contents")
             model = genai.GenerativeModel(model_name=req_body.get("model"))
@@ -75,6 +75,28 @@ berikan saya insight yang jelas dan singkat serta akurat. tidak usah berbasa bas
         except Exception as e:
             return jsonify({ "error": str(e) })
 
+@app.route('/api/store')
+def store_data():
+    if request.method != "POST":
+        return jsonify({ "error": "Invalid request method" })
+    
+    req_body = request.get_json()
+    date = req_body.get("date")
+    product_category = req_body.get("product_category")
+    quantity = int(req_body.get("quantity"))
+    price = int(req_body.get("price"))
+    customer_id = req_body.get("customer_id")
+    customer_age = req_body.get("customer_age")
+    customer_gender = req_body.get("customer_gender")
+
+    worksheet = open_worksheet()
+    total_rows = len(worksheet.col_values(1))
+
+    last_row = worksheet.row_values(total_rows)
+    last_index = last_row[0]
+    worksheet.append_row([last_index+1, date, customer_id, customer_gender, customer_age, product_category, quantity, price, quantity * price])
+
+    return jsonify({ "success": True })
 
 @app.route('/<path:path>')
 def serve_static(path):
