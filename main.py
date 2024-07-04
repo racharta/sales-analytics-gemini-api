@@ -1,8 +1,8 @@
 import json
 import os
+import csv
 
 import google.generativeai as genai
-import gspread
 import logging
 
 from oauth2client.service_account import ServiceAccountCredentials
@@ -22,12 +22,20 @@ genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 
-def open_worksheet():
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope) 
-    client = gspread.authorize(creds)
-    sheet = client.open_by_url('https://docs.google.com/spreadsheets/d/1vk7kuDZbI_I9jejQJSZpqNblH07r2Qb1IJLLyo69774/')
-    return sheet.worksheet('Retail Sales Dataset_exported.csv')
+data = []
+def open_sheet():
+    file_path = './Retail Sales Dataset.csv'
+
+    with open(file_path, mode='r') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            data.append(row)    
+
+def save_sheet():
+    with open('data.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(data)
+
 
 @app.route("/")
 def index():
@@ -47,8 +55,8 @@ def generate_api():
                 main.py
                 '''.replace('\n', '') })
         try:
-            worksheet = open_worksheet()
-            data = worksheet.get_all_values()
+            if data == []:
+                open_sheet() 
             req_body = request.get_json()
             content = req_body.get("contents")
             model = genai.GenerativeModel(model_name=req_body.get("model"))
@@ -69,7 +77,6 @@ berikan saya insight yang jelas dan singkat serta akurat. tidak usah berbasa bas
                 for chunk in response:
                     yield 'data: %s\n\n' % json.dumps({ "text": chunk.text })
 
-            print(stream())
             return stream(), {'Content-Type': 'text/event-stream'}
 
         except Exception as e:
@@ -89,12 +96,11 @@ def store_data():
     customer_age = req_body.get("customer_age")
     customer_gender = req_body.get("customer_gender")
 
-    worksheet = open_worksheet()
-    total_rows = len(worksheet.col_values(1))
+    if data == []:  # check if data is empty list
+        open_sheet()
 
-    last_row = worksheet.row_values(total_rows)
-    last_index = last_row[0]
-    worksheet.append_row([last_index+1, date, customer_id, customer_gender, customer_age, product_category, quantity, price, quantity * price])
+    data.append([date, product_category, quantity, price, customer_id, customer_age, customer_gender])
+    save_sheet()
 
     return jsonify({ "success": True })
 
